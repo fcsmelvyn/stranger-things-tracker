@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Login</title>
+  <style>
+    body{
+      background:#0b0b0c; display:flex; align-items:center; justify-content:center;
+      height:100vh; color:white; font-family:sans-serif;
+    }
+    .box{
+      background:#111; padding:30px; border-radius:10px;
+      box-shadow:0 0 12px rgba(255,20,20,0.4);
+      width:260px; text-align:center;
+    }
+    input{
+      width:100%; padding:10px; margin-top:10px; border-radius:6px;
+      background:#222; border:1px solid #333; color:white;
+    }
+    button{
+      margin-top:12px; padding:10px; width:100%; border-radius:6px;
+      background:#ff1a1a; border:none; font-weight:bold; cursor:pointer;
+    }
+    .error{color:#ff4a4a; margin-top:10px; display:none;}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Connexion</h2>
+    <input type="password" id="pass" placeholder="Mot de passe">
+    <button onclick="login()">Entrer</button>
+    <div class="error" id="err">Mot de passe incorrect</div>
+  </div>
+
+  <script>
+    const CORRECT_PASSWORD_HASH = "REPLACE_WITH_HASH";
+
+    async function login(){
+      const pwd = document.getElementById("pass").value;
+      const hash = await sha256(pwd);
+
+      if(hash === CORRECT_PASSWORD_HASH){
+        sessionStorage.setItem("logged", "1");
+        window.location.href = "index.html";
+      } else {
+        document.getElementById("err").style.display = "block";
+      }
+    }
+
+    async function sha256(str){
+      const buf = new TextEncoder().encode(str);
+      const digest = await crypto.subtle.digest("SHA-256", buf);
+      return [...new Uint8Array(digest)]
+          .map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+  </script>
+</body>
+</html>
