@@ -1,113 +1,835 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tracker — Signalements style "Stranger" (Local save)</title>
-
-  <!-- Google Fonts (ambiance) -->
-  <link href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
-  <script>
-  if (sessionStorage.getItem("logged") !== "1") {
-    window.location.href = "login.html";
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stranger Things — Collection Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          stranger: {
+            red: '#b91c1c',
+            crimson: '#dc2626',
+            dark: '#0f0f0f',
+            purple: '#7e22ce',
+            indigo: '#6366f1',
+            green: '#059669',
+            emerald: '#10b981'
+          }
+        },
+        fontFamily: {
+          title: ['Bebas Neue', 'sans-serif'],
+          heading: ['Montserrat', 'sans-serif'],
+          body: ['Inter', 'sans-serif']
+        }
+      }
+    }
   }
 </script>
-  <header class="site-header">
-    <div class="title-wrap">
-      <h1 class="logo">STRANGER — Tracker</h1>
-      <p class="subtitle">Signale, sauvegarde localement et exporte vers GitHub (JSON)</p>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
+
+:root{
+  --bg1: #0f0f0f;
+  --bg2: #1a1a2e;
+  --bg3: #16213e;
+}
+html,body{height:100%}
+body{
+  margin:0;
+  min-height:100%;
+  font-family: 'Inter', sans-serif;
+  color:#f8fafc;
+  background: linear-gradient(135deg,var(--bg1) 0%, var(--bg2) 50%, var(--bg3) 100%);
+}
+
+/* Title styles */
+.stranger-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:3.2rem;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  background: linear-gradient(90deg,#ef4444,#f97316,#8b5cf6);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 18px rgba(239,68,68,0.25);
+}
+
+/* Cards */
+.card{
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(8px);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:12px;
+}
+
+/* small */
+.no-img{
+  color: #9ca3af;
+}
+
+/* progress */
+.progress-track{height:12px;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#ef4444,#8b5cf6);transition:width .6s ease}
+
+/* final image */
+.final-img{max-height:420px; width:auto; border-radius:8px; display:block; margin:auto}
+
+/* small helpers */
+.tab-active { background: linear-gradient(135deg,#ef4444,#8b5cf6); box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+.input-base { background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.06); color: #fff; border-radius:8px; padding:.6rem .75rem }
+
+/* responsive tweaks */
+@media (max-width:640px){
+  .stranger-title{ font-size:2.2rem }
+  .final-img{ max-height:260px }
+}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- LOGIN -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center p-6">
+  <div class="w-full max-w-md card p-8">
+    <div class="text-center mb-6">
+      <div class="stranger-title mb-2">STRANGER THINGS</div>
+      <div class="text-sm text-gray-300">Collection Tracker</div>
     </div>
-    <nav class="header-actions">
-      <button id="exportBtn">Exporter (.json)</button>
-      <label class="import-label">
-        Importer
-        <input id="importFile" type="file" accept=".json" />
-      </label>
-      <button id="clearBtn" title="Supprimer toutes les entrées">Tout effacer</button>
-    </nav>
+
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label class="text-sm text-gray-300">Pseudo</label>
+        <input id="login-username" class="input-base w-full mt-2" placeholder="admin" />
+      </div>
+      <div>
+        <label class="text-sm text-gray-300">Mot de passe</label>
+        <input id="login-password" type="password" class="input-base w-full mt-2" placeholder="admin" />
+      </div>
+
+      <div>
+        <button type="submit" class="w-full py-3 rounded-xl text-white" style="background:linear-gradient(90deg,#ef4444,#8b5cf6)">Accéder à ma collection</button>
+      </div>
+
+      <p id="login-hint" class="text-xs text-gray-400 text-center">Identifiants par défaut : <strong>admin</strong> / <strong>admin</strong></p>
+      <p id="login-error" class="text-xs text-red-400 text-center hidden">Pseudo ou mot de passe incorrect</p>
+    </form>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden min-h-screen p-6">
+
+  <!-- FINAL IMAGE -->
+  <section class="max-w-6xl mx-auto mb-6">
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="text-lg font-semibold">IMAGE FINALE</div>
+          <div class="text-sm text-gray-400">Photo grand format de ton tableau complet</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="px-3 py-2 rounded bg-slate-700 cursor-pointer text-sm">
+            Importer
+            <input id="final-input" type="file" accept="image/*" class="hidden" />
+          </label>
+          <button id="final-clear" class="px-3 py-2 rounded bg-red-600 text-sm">Supprimer</button>
+        </div>
+      </div>
+
+      <div class="h-64 flex items-center justify-center bg-slate-800 rounded">
+        <img id="final-image" class="final-img hidden" alt="Image finale" />
+        <div id="final-empty" class="no-img">Aucune image pour l'instant — importe la photo de ton tableau</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HEADER -->
+  <header class="max-w-6xl mx-auto flex items-center justify-between mb-6">
+    <div>
+      <div class="stranger-title" style="font-size:1.6rem">STRANGER THINGS</div>
+      <div class="text-sm text-gray-400" id="welcome-txt">Bienvenue</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-sm text-gray-300">Possédés : <strong id="owned-count">0</strong> / <span id="total-count">0</span></div>
+      <button id="tab-collection" class="px-3 py-2 rounded tab-active text-white text-sm">Collection</button>
+      <button id="tab-gallery" class="px-3 py-2 rounded text-white text-sm bg-slate-700">Galerie</button>
+      <button id="tab-profile" class="px-3 py-2 rounded text-white text-sm bg-slate-700">Profil</button>
+      <button id="logout-btn" class="px-3 py-2 rounded border text-sm">Déconnexion</button>
+    </div>
   </header>
 
-  <main class="main">
-    <section class="left">
-      <form id="reportForm" class="card form-card">
-        <h2>Ajouter un signalement</h2>
-
-        <div class="form-row">
-          <label>Nom / Titre
-            <input id="inputTitle" type="text" required maxlength="80" placeholder="Ex : 'Lumière étrange'">
-          </label>
+  <main class="max-w-6xl mx-auto">
+    <!-- STATS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-gray-400">Progression</div>
+            <div class="text-2xl font-bold" id="progress-count">0/0</div>
+          </div>
+          <div style="width:140px">
+            <div class="progress-track"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+            <div class="text-xs text-gray-400 mt-1" id="progress-percent">0%</div>
+          </div>
         </div>
-
-        <div class="form-row">
-          <label>Lieu
-            <input id="inputLocation" type="text" required placeholder="Ex : 'Hawkins — rue centrale'">
-          </label>
-        </div>
-
-        <div class="form-row small">
-          <label>Date
-            <input id="inputDate" type="date" required>
-          </label>
-          <label>Heure
-            <input id="inputTime" type="time">
-          </label>
-        </div>
-
-        <div class="form-row">
-          <label>Notes
-            <textarea id="inputNotes" rows="3" placeholder="Détails supplémentaires..."></textarea>
-          </label>
-        </div>
-
-        <div class="form-row actions">
-          <button type="submit" id="saveBtn">Ajouter</button>
-          <button type="button" id="updateBtn" class="hidden">Mettre à jour</button>
-          <button type="button" id="cancelEditBtn" class="hidden">Annuler</button>
-        </div>
-
-      </form>
-
-      <div class="card stats-card">
-        <h3>Statistiques</h3>
-        <p id="statCount">0 signalement(s)</p>
-        <p>Sauvegarde automatique : <strong>localStorage</strong></p>
       </div>
 
-      <div class="card howto-card">
-        <h3>Comment sauvegarder sur GitHub</h3>
-        <ol>
-          <li>Clique "Exporter" → télécharge `reports.json`.</li>
-          <li>Dans ton repo GitHub, va sur **Add file → Upload files** et uploade `reports.json` (ou commit avec `git`).</li>
-          <li>Si tu veux automatiser, tu peux utiliser le GitHub CLI : <code>gh repo clone ...</code> et commit/push le fichier.</li>
-        </ol>
+      <div class="card p-4">
+        <div class="text-sm text-gray-400">Dépensé (est.)</div>
+        <div class="text-2xl font-bold text-stranger-emerald" id="spent-est">0.00 CHF</div>
       </div>
+
+      <div class="card p-4">
+        <div class="text-sm text-gray-400">À dépenser (est.)</div>
+        <div class="text-2xl font-bold text-stranger-purple" id="remain-est">0.00 CHF</div>
+      </div>
+    </div>
+
+    <!-- TABS CONTENT -->
+    <section id="content-collection">
+      <div class="mb-4 flex items-center justify-between">
+        <div class="flex gap-2 items-center">
+          <input id="filter-input" class="input-base" placeholder="Filtrer..." />
+          <button id="export-btn" class="px-3 py-2 rounded bg-slate-700 text-sm">Exporter</button>
+          <label class="px-3 py-2 rounded bg-slate-700 cursor-pointer text-sm">
+            Importer
+            <input id="import-file" type="file" accept="application/json" class="hidden" />
+          </label>
+        </div>
+        <div class="text-sm text-gray-400">Associe des images à chaque figurine depuis la galerie</div>
+      </div>
+
+      <!-- Hangables -->
+      <section class="card p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="stranger-heading text-xl text-stranger-red font-semibold">Figurines Suspendables <span class="text-sm text-gray-400" id="hangables-count">(0/0)</span></h3>
+        </div>
+        <div id="hangables-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+      </section>
+
+      <!-- Accessories -->
+      <section class="card p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="stranger-heading text-xl text-stranger-purple font-semibold">Accessoires <span class="text-sm text-gray-400" id="accessories-count">(0/0)</span></h3>
+        </div>
+        <div id="accessories-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+      </section>
+
+      <!-- Missing / completion -->
+      <section id="missing-section" class="card p-6 hidden mb-6">
+        <h4 class="text-yellow-400 font-semibold mb-3">Items manquants</h4>
+        <div id="missing-list" class="flex gap-2 flex-wrap"></div>
+      </section>
+
+      <section id="completion-msg" class="card p-6 text-center hidden">
+        <div class="text-4xl mb-2">🏆</div>
+        <div class="text-2xl font-semibold text-stranger-emerald">Félicitations — Collection complétée !</div>
+      </section>
     </section>
 
-    <section class="right">
-      <div class="topbar">
-        <input id="search" placeholder="Rechercher par titre, lieu, notes..." />
-        <select id="filterDate">
-          <option value="all">Tous</option>
-          <option value="today">Aujourd'hui</option>
-          <option value="week">Cette semaine</option>
-          <option value="month">Ce mois</option>
-        </select>
+    <!-- GALLERY -->
+    <section id="content-gallery" class="hidden">
+      <div class="text-center mb-6">
+        <h3 class="stranger-heading text-2xl mb-2">Galerie</h3>
+        <div class="text-gray-400">Tes photos de figurines</div>
       </div>
 
-      <div id="list" class="reports-list">
-        <!-- cartes de signalements générées ici -->
+      <div class="mb-4 flex justify-end">
+        <label class="px-3 py-2 rounded bg-slate-700 cursor-pointer text-sm">
+          Ajouter une image
+          <input id="gallery-upload" type="file" accept="image/*" class="hidden" />
+        </label>
+      </div>
+
+      <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="content-profile" class="hidden">
+      <div class="card p-6">
+        <h3 class="stranger-heading text-2xl mb-3">Mon Profil</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm">Prénom</label>
+            <input id="profile-first" class="input-base w-full mt-2" />
+          </div>
+          <div>
+            <label class="text-sm">Nom</label>
+            <input id="profile-last" class="input-base w-full mt-2" />
+          </div>
+          <div>
+            <label class="text-sm">Pseudo</label>
+            <input id="profile-pseudo" class="input-base w-full mt-2" />
+          </div>
+          <div>
+            <label class="text-sm">Email</label>
+            <input id="profile-email" type="email" class="input-base w-full mt-2" />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="text-sm">Photo de profil</label>
+            <div class="flex items-center gap-3 mt-2">
+              <div id="profile-photo-box" class="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
+                <div id="profile-photo-empty" class="text-gray-400">Aucune</div>
+                <img id="profile-photo-img" class="hidden w-full h-full object-cover" alt="profil" />
+              </div>
+              <label class="px-3 py-2 rounded bg-slate-700 cursor-pointer text-sm">
+                Modifier
+                <input id="profile-photo-upload" type="file" accept="image/*" class="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="text-sm">Modifier identifiants (nouveau utilisateur / mot de passe)</label>
+            <div class="flex gap-2 mt-2">
+              <input id="new-username" class="input-base" placeholder="nouveau utilisateur" />
+              <input id="new-password" type="password" class="input-base" placeholder="nouveau mot de passe" />
+              <input id="new-password-confirm" type="password" class="input-base" placeholder="confirmer" />
+              <button id="save-creds" class="px-3 py-2 rounded bg-emerald-600 text-sm">Enregistrer</button>
+            </div>
+          </div>
+
+          <div class="md:col-span-2 text-right">
+            <button id="save-profile" class="px-4 py-2 rounded bg-slate-700">Enregistrer le profil</button>
+            <button id="reset-defaults" class="px-4 py-2 rounded bg-red-600 ml-2">Réinitialiser identifiants</button>
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <small>Template inspiré — <em>Style sombre / rouge</em> — Données locales (localStorage) + Export/Import JSON</small>
-  </footer>
+  <footer class="max-w-6xl mx-auto text-center text-sm text-gray-400 mt-6">© 2025 Stranger Things Collection Tracker — Données stockées localement</footer>
+</div>
 
-  <script src="script.js"></script>
+<script>
+/*
+  Stranger Things Tracker — Single file version
+  - Stores everything in localStorage
+  - Default creds admin/admin
+  - One-page vanilla JS
+*/
+
+// --- Storage keys
+const KEY = {
+  CREDS: 'st_creds_v1',
+  PROFILE: 'st_profile_v1',
+  ITEMS: 'st_items_v1',
+  GALLERY: 'st_gallery_v1',
+  FINAL: 'st_final_v1'
+};
+
+// --- Default data (you can expand)
+const defaultCreds = { username: 'admin', password: 'admin' };
+
+const defaultProfile = { prenom: '', nom:'', pseudo:'', email:'', photo: '' };
+
+const defaultItems = {
+  hangables: [
+    { id: 'h1', name: 'Eleven', code:'VC259' },
+    { id: 'h2', name: 'Eleven (Upside Down)', code:'VC260', variant:true },
+    { id: 'h3', name: 'Will Byers', code:'VC261' },
+    { id: 'h4', name: 'Will Byers (Upside Down)', code:'VC262', variant:true },
+    { id: 'h5', name: 'Dustin', code:'VC263' },
+    { id: 'h6', name: 'Dustin (Upside Down)', code:'VC264', variant:true },
+    { id: 'h7', name: 'Max', code:'VC265' },
+    { id: 'h8', name: 'Max (Upside Down)', code:'VC266', variant:true },
+    { id: 'h9', name: 'Steve', code:'VC267' },
+    { id: 'h10', name: 'Steve (Upside Down)', code:'VC268', variant:true },
+    { id: 'h11', name: 'Robin', code:'VC269' },
+    { id: 'h12', name: 'Robin (Upside Down)', code:'VC271', variant:true },
+    { id: 'h13', name: 'Lucas', code:'VC273' },
+    { id: 'h14', name: 'Mike', code:'VC274' }
+  ],
+  accessories: [
+    { id: 'a15', name:'Support téléphone - Eleven', code:'VC275', type:'phone' },
+    { id: 'a16', name:'Support téléphone - Dustin', code:'VC276', type:'phone' },
+    { id: 'a17', name:'Décoration crayon - Demogorgon', code:'VC277', type:'pencil' },
+    { id: 'a18', name:'Décoration zip - Will', code:'VC283', type:'zipper' },
+    { id: 'a19', name:'Décoration câble - Eleven', code:'VC284', type:'cable' },
+    { id: 'a20', name:'Support téléphone - Max', code:'VC285', type:'phone' },
+    { id: 'a21', name:'Décoration crayon - Mind Flayer', code:'VC286', type:'pencil' },
+    { id: 'a22', name:'Décoration zip - Vecna', code:'VC287', type:'zipper' },
+    { id: 'a23', name:'Décoration câble - Demogorgon', code:'VC288', type:'cable' },
+    { id: 'a24', name:'Support téléphone - Steve', code:'VC356', type:'phone' }
+  ]
+};
+
+// --- Utilities for localStorage
+function load(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){
+    return fallback;
+  }
+}
+function save(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); } catch(e){ console.warn('save error',e); }
+}
+
+// --- App state
+let creds = load(KEY.CREDS, defaultCreds);
+let profile = load(KEY.PROFILE, defaultProfile);
+let itemsState = load(KEY.ITEMS, { hangables: defaultItems.hangables.map(i => ({...i, owned:false, imageId:null})), accessories: defaultItems.accessories.map(i => ({...i, owned:false, imageId:null})) });
+let gallery = load(KEY.GALLERY, []); // each {id,name,dataUrl}
+let finalImage = load(KEY.FINAL, null);
+
+// --- DOM elements
+const loginScreen = document.getElementById('login-screen');
+const appEl = document.getElementById('app');
+const loginForm = document.getElementById('login-form');
+const loginUser = document.getElementById('login-username');
+const loginPass = document.getElementById('login-password');
+const loginError = document.getElementById('login-error');
+
+const tabCollectionBtn = document.getElementById('tab-collection');
+const tabGalleryBtn = document.getElementById('tab-gallery');
+const tabProfileBtn = document.getElementById('tab-profile');
+const logoutBtn = document.getElementById('logout-btn');
+
+const contentCollection = document.getElementById('content-collection');
+const contentGallery = document.getElementById('content-gallery');
+const contentProfile = document.getElementById('content-profile');
+
+const hangablesContainer = document.getElementById('hangables-container');
+const accessoriesContainer = document.getElementById('accessories-container');
+const ownedCountEl = document.getElementById('owned-count');
+const totalCountEl = document.getElementById('total-count');
+const progressCountEl = document.getElementById('progress-count');
+const progressFillEl = document.getElementById('progress-fill');
+const progressPercentEl = document.getElementById('progress-percent');
+const spentEstEl = document.getElementById('spent-est');
+const remainEstEl = document.getElementById('remain-est');
+const hangablesCountEl = document.getElementById('hangables-count');
+const accessoriesCountEl = document.getElementById('accessories-count');
+const missingSection = document.getElementById('missing-section');
+const missingList = document.getElementById('missing-list');
+const completionMsg = document.getElementById('completion-msg');
+
+const filterInput = document.getElementById('filter-input');
+const galleryGrid = document.getElementById('gallery-grid');
+const galleryUpload = document.getElementById('gallery-upload');
+const galleryCountEl = document.getElementById('gallery-count');
+
+const exportBtn = document.getElementById('export-btn');
+const importFile = document.getElementById('import-file');
+
+const finalInput = document.getElementById('final-input');
+const finalImageEl = document.getElementById('final-image');
+const finalEmptyEl = document.getElementById('final-empty');
+const finalClearBtn = document.getElementById('final-clear');
+
+const welcomeTxt = document.getElementById('welcome-txt');
+
+// profile fields
+const profFirst = document.getElementById('profile-first');
+const profLast = document.getElementById('profile-last');
+const profPseudo = document.getElementById('profile-pseudo');
+const profEmail = document.getElementById('profile-email');
+const profilePhotoUpload = document.getElementById('profile-photo-upload');
+const profilePhotoImg = document.getElementById('profile-photo-img');
+const profilePhotoEmpty = document.getElementById('profile-photo-empty');
+
+const newUsername = document.getElementById('new-username');
+const newPassword = document.getElementById('new-password');
+const newPasswordConfirm = document.getElementById('new-password-confirm');
+const saveCredsBtn = document.getElementById('save-creds');
+const saveProfileBtn = document.getElementById('save-profile');
+const resetDefaultsBtn = document.getElementById('reset-defaults');
+
+// --- Helper functions
+function uid(prefix='id'){
+  return prefix + '_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+}
+
+function renderAll(){
+  renderHeaderAndStats();
+  renderItems();
+  renderGallery();
+  renderProfileForm();
+  renderFinalImage();
+}
+
+function renderHeaderAndStats(){
+  const allItems = [...itemsState.hangables, ...itemsState.accessories];
+  const total = allItems.length;
+  const owned = allItems.filter(i => i.owned).length;
+  ownedCountEl.textContent = owned;
+  totalCountEl.textContent = total;
+  progressCountEl.textContent = `${owned}/${total}`;
+  const percent = Math.round((owned / Math.max(1,total)) * 100);
+  progressFillEl.style.width = percent + '%';
+  progressPercentEl.textContent = percent + '%';
+  // estimate costs
+  const spentPacks = Math.floor(owned/3);
+  const spentSingles = owned % 3;
+  const spent = (spentPacks*5) + (spentSingles*1.5);
+  const missing = total - owned;
+  const missingPacks = Math.floor(missing/3);
+  const missingSingles = missing % 3;
+  const remaining = (missingPacks*5) + (missingSingles*1.5);
+  spentEstEl.textContent = spent.toFixed(2) + ' CHF';
+  remainEstEl.textContent = remaining.toFixed(2) + ' CHF';
+  // counts per section
+  hangablesCountEl.textContent = `( ${itemsState.hangables.filter(h=>h.owned).length}/${itemsState.hangables.length} )`;
+  accessoriesCountEl.textContent = `( ${itemsState.accessories.filter(a=>a.owned).length}/${itemsState.accessories.length} )`;
+  // missing items list
+  const missingItems = allItems.filter(i => !i.owned);
+  if(missingItems.length === 0){
+    missingSection.classList.add('hidden');
+    completionMsg.classList.remove('hidden');
+  }else{
+    missingSection.classList.remove('hidden');
+    completionMsg.classList.add('hidden');
+    missingList.innerHTML = '';
+    missingItems.forEach(it=>{
+      const span = document.createElement('span'); span.className='bg-gray-800/50 text-gray-300 px-3 py-1.5 rounded-full text-sm'; span.textContent = it.name;
+      missingList.appendChild(span);
+    });
+  }
+  save(KEY.ITEMS, itemsState);
+}
+
+function renderItems(){
+  // hangables
+  hangablesContainer.innerHTML = '';
+  const q = (filterInput.value || '').toLowerCase();
+  itemsState.hangables.filter(it => it.name.toLowerCase().includes(q)).forEach(it=>{
+    const card = document.createElement('div'); card.className = 'card p-4';
+    card.innerHTML = `
+      <div class="h-36 bg-slate-800 rounded overflow-hidden mb-3 flex items-center justify-center">
+        ${it.imageId ? `<img src="${(gallery.find(g=>g.id===it.imageId) || {}).dataUrl || ''}" class="object-contain max-h-36" alt="">` : `<div class="no-img">Aucune image</div>`}
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-semibold">${it.name}</div>
+          <div class="text-xs text-gray-400">Code: ${it.code || ''}</div>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" ${it.owned ? 'checked' : ''} />
+          Possédé
+        </label>
+      </div>
+      <div class="mt-3 flex gap-2 items-center">
+        <select class="input-base" data-action="select-image">
+          <option value="">— Image —</option>
+          ${gallery.map(g=> `<option value="${g.id}" ${it.imageId===g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+        </select>
+        <label class="px-3 py-1 rounded bg-violet-700 cursor-pointer text-sm">
+          <input type="file" accept="image/*" data-action="upload-item" class="hidden" />
+          Ajouter photo
+        </label>
+      </div>
+    `;
+    // events
+    const checkbox = card.querySelector('input[type=checkbox]');
+    checkbox.addEventListener('change', ()=>{
+      it.owned = !it.owned;
+      renderAll();
+    });
+    const sel = card.querySelector('select[data-action="select-image"]');
+    sel.addEventListener('change', (e)=>{
+      const val = e.target.value;
+      it.imageId = val || null;
+      save(KEY.ITEMS, itemsState);
+      renderAll();
+    });
+    const upload = card.querySelector('input[data-action="upload-item"]');
+    upload.addEventListener('change', (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = { id: uid('img'), name: f.name, dataUrl: reader.result };
+        gallery.unshift(img);
+        save(KEY.GALLERY, gallery);
+        it.imageId = img.id;
+        save(KEY.ITEMS, itemsState);
+        renderAll();
+      };
+      reader.readAsDataURL(f);
+    });
+    hangablesContainer.appendChild(card);
+  });
+
+  // accessories
+  accessoriesContainer.innerHTML = '';
+  itemsState.accessories.filter(it => it.name.toLowerCase().includes(q)).forEach(it=>{
+    const card = document.createElement('div'); card.className = 'card p-4';
+    card.innerHTML = `
+      <div class="h-36 bg-slate-800 rounded overflow-hidden mb-3 flex items-center justify-center">
+        ${it.imageId ? `<img src="${(gallery.find(g=>g.id===it.imageId) || {}).dataUrl || ''}" class="object-contain max-h-36" alt="">` : `<div class="no-img">Aucune image</div>`}
+      </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-semibold">${it.name}</div>
+          <div class="text-xs text-gray-400">Code: ${it.code || ''}</div>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" ${it.owned ? 'checked' : ''} />
+          Possédé
+        </label>
+      </div>
+      <div class="mt-3 flex gap-2 items-center">
+        <select class="input-base" data-action="select-image">
+          <option value="">— Image —</option>
+          ${gallery.map(g=> `<option value="${g.id}" ${it.imageId===g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+        </select>
+        <label class="px-3 py-1 rounded bg-violet-700 cursor-pointer text-sm">
+          <input type="file" accept="image/*" data-action="upload-item" class="hidden" />
+          Ajouter photo
+        </label>
+      </div>
+    `;
+    // events
+    const checkbox = card.querySelector('input[type=checkbox]');
+    checkbox.addEventListener('change', ()=>{
+      it.owned = !it.owned;
+      renderAll();
+    });
+    const sel = card.querySelector('select[data-action="select-image"]');
+    sel.addEventListener('change', (e)=>{
+      const val = e.target.value;
+      it.imageId = val || null;
+      save(KEY.ITEMS, itemsState);
+      renderAll();
+    });
+    const upload = card.querySelector('input[data-action="upload-item"]');
+    upload.addEventListener('change', (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = { id: uid('img'), name: f.name, dataUrl: reader.result };
+        gallery.unshift(img);
+        save(KEY.GALLERY, gallery);
+        it.imageId = img.id;
+        save(KEY.ITEMS, itemsState);
+        renderAll();
+      };
+      reader.readAsDataURL(f);
+    });
+    accessoriesContainer.appendChild(card);
+  });
+
+  save(KEY.ITEMS, itemsState);
+}
+
+// gallery render
+function renderGallery(){
+  galleryGrid.innerHTML = '';
+  if(gallery.length === 0){
+    galleryGrid.innerHTML = '<div class="text-gray-400">Galerie vide</div>';
+    document.getElementById('gallery-count').textContent = 0;
+    return;
+  }
+  gallery.forEach(g=>{
+    const card = document.createElement('div'); card.className = 'card p-3';
+    card.innerHTML = `
+      <div class="h-40 mb-2 overflow-hidden rounded bg-slate-800 flex items-center justify-center">
+        <img src="${g.dataUrl}" alt="${g.name}" class="object-contain max-h-40" />
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="text-sm">${g.name}</div>
+        <div class="flex gap-2">
+          <button class="px-2 py-1 rounded bg-slate-700 copy-btn">Copier</button>
+          <button class="px-2 py-1 rounded bg-red-600 del-btn">Supprimer</button>
+        </div>
+      </div>
+    `;
+    const copyBtn = card.querySelector('.copy-btn');
+    copyBtn.addEventListener('click', ()=>{
+      navigator.clipboard?.writeText(g.dataUrl);
+      alert('DataURL copié');
+    });
+    const delBtn = card.querySelector('.del-btn');
+    delBtn.addEventListener('click', ()=>{
+      if(!confirm('Supprimer cette image ?')) return;
+      gallery = gallery.filter(x=>x.id!==g.id);
+      // remove references from items
+      itemsState.hangables.forEach(it => { if(it.imageId === g.id) it.imageId = null });
+      itemsState.accessories.forEach(it => { if(it.imageId === g.id) it.imageId = null });
+      save(KEY.GALLERY, gallery);
+      save(KEY.ITEMS, itemsState);
+      renderAll();
+    });
+    galleryGrid.appendChild(card);
+  });
+  document.getElementById('gallery-count').textContent = gallery.length;
+}
+
+// profile render
+function renderProfileForm(){
+  profFirst.value = profile.prenom || '';
+  profLast.value = profile.nom || '';
+  profPseudo.value = profile.pseudo || '';
+  profEmail.value = profile.email || '';
+  if(profile.photo){
+    profilePhotoImg.src = profile.photo;
+    profilePhotoImg.classList.remove('hidden');
+    profilePhotoEmpty.classList.add('hidden');
+  }else{
+    profilePhotoImg.classList.add('hidden');
+    profilePhotoEmpty.classList.remove('hidden');
+  }
+  welcomeTxt.textContent = 'Bienvenue, ' + (profile.displayName || profile.pseudo || 'Utilisateur');
+}
+
+// final image render
+function renderFinalImage(){
+  if(finalImage){
+    finalImageEl.src = finalImage;
+    finalImageEl.classList.remove('hidden');
+    finalEmptyEl.classList.add('hidden');
+  } else {
+    finalImageEl.classList.add('hidden');
+    finalEmptyEl.classList.remove('hidden');
+  }
+}
+
+// --- Events & actions
+loginForm.addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  const u = loginUser.value.trim();
+  const p = loginPass.value;
+  if(!u || !p){ loginError.textContent = 'Veuillez remplir tous les champs'; loginError.classList.remove('hidden'); return; }
+  if(u === creds.username && p === creds.password){
+    loginError.classList.add('hidden');
+    loginScreen.style.display = 'none';
+    appEl.classList.remove('hidden');
+    renderAll();
+  } else {
+    loginError.textContent = 'Pseudo ou mot de passe incorrect';
+    loginError.classList.remove('hidden');
+  }
+});
+
+// tabs
+tabCollectionBtn.addEventListener('click', ()=>{ contentCollection.classList.remove('hidden'); contentGallery.classList.add('hidden'); contentProfile.classList.add('hidden'); tabCollectionBtn.classList.add('tab-active'); tabGalleryBtn.classList.remove('tab-active'); tabProfileBtn.classList.remove('tab-active'); });
+tabGalleryBtn.addEventListener('click', ()=>{ contentCollection.classList.add('hidden'); contentGallery.classList.remove('hidden'); contentProfile.classList.add('hidden'); tabGalleryBtn.classList.add('tab-active'); tabCollectionBtn.classList.remove('tab-active'); tabProfileBtn.classList.remove('tab-active'); });
+tabProfileBtn.addEventListener('click', ()=>{ contentCollection.classList.add('hidden'); contentGallery.classList.add('hidden'); contentProfile.classList.remove('hidden'); tabProfileBtn.classList.add('tab-active'); tabCollectionBtn.classList.remove('tab-active'); tabGalleryBtn.classList.remove('tab-active'); });
+
+// logout
+logoutBtn.addEventListener('click', ()=>{
+  if(confirm('Se déconnecter ?')){ appEl.classList.add('hidden'); loginScreen.style.display = 'flex'; }
+});
+
+// filter
+filterInput.addEventListener('input', ()=> renderItems());
+
+// gallery upload
+galleryUpload.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = { id: uid('img'), name: f.name, dataUrl: reader.result };
+    gallery.unshift(img);
+    save(KEY.GALLERY, gallery);
+    renderAll();
+  };
+  reader.readAsDataURL(f);
+});
+
+// export/import
+exportBtn.addEventListener('click', ()=>{
+  const payload = { creds, profile, itemsState, gallery, finalImage };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'st_collection_export.json'; a.click(); URL.revokeObjectURL(a.href);
+});
+
+importFile.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const o = JSON.parse(reader.result);
+      if(o.creds) creds = o.creds;
+      if(o.profile) profile = o.profile;
+      if(o.itemsState) itemsState = o.itemsState;
+      if(o.gallery) gallery = o.gallery;
+      if(o.finalImage) finalImage = o.finalImage;
+      save(KEY.CREDS, creds); save(KEY.PROFILE, profile); save(KEY.ITEMS, itemsState); save(KEY.GALLERY, gallery); save(KEY.FINAL, finalImage);
+      alert('Import effectué');
+      renderAll();
+    }catch(err){
+      alert('Fichier invalide');
+    }
+  };
+  reader.readAsText(f);
+});
+
+// final image input
+finalInput.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    finalImage = reader.result;
+    save(KEY.FINAL, finalImage);
+    renderFinalImage();
+  };
+  reader.readAsDataURL(f);
+});
+finalClearBtn.addEventListener('click', ()=>{
+  if(confirm('Supprimer l\'image finale ?')){ finalImage = null; save(KEY.FINAL, finalImage); renderFinalImage(); }
+});
+
+// profile photo upload
+profilePhotoUpload.addEventListener('change', (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    profile.photo = reader.result; save(KEY.PROFILE, profile); renderProfileForm();
+  };
+  reader.readAsDataURL(f);
+});
+
+// save profile
+saveProfileBtn.addEventListener('click', ()=>{
+  profile.prenom = profFirst.value; profile.nom = profLast.value; profile.pseudo = profPseudo.value; profile.email = profEmail.value;
+  save(KEY.PROFILE, profile); renderProfileForm(); alert('Profil enregistré');
+});
+
+// change credentials
+saveCredsBtn.addEventListener('click', ()=>{
+  const u = newUsername.value.trim(); const p = newPassword.value; const c = newPasswordConfirm.value;
+  if(!u || !p){ alert('Utilisateur et mot de passe requis'); return; }
+  if(p !== c){ alert('Les mots de passe ne correspondent pas'); return; }
+  creds = { username: u, password: p }; save(KEY.CREDS, creds);
+  alert('Identifiants modifiés — reconnecte-toi');
+  // force logout to use new creds
+  appEl.classList.add('hidden'); loginScreen.style.display = 'flex';
+});
+
+// reset defaults
+resetDefaultsBtn.addEventListener('click', ()=>{
+  if(confirm('Remettre les identifiants par défaut (admin/admin) ?')){ creds = {...defaultCreds}; save(KEY.CREDS, creds); alert('Identifiants réinitialisés'); }
+});
+
+// initial save/load
+save(KEY.CREDS, creds);
+save(KEY.PROFILE, profile);
+save(KEY.ITEMS, itemsState);
+save(KEY.GALLERY, gallery);
+save(KEY.FINAL, finalImage);
+
+// initial render (login visible)
+(function init(){
+  // display counts early
+  renderHeaderAndStats();
+  // populate profile form values
+  renderProfileForm();
+  renderFinalImage();
+})();
+</script>
+
 </body>
 </html>
