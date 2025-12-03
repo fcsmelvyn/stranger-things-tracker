@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Stranger Things — Collection Tracker</title>
@@ -82,6 +83,74 @@ body{
 /* small helpers */
 .tab-active { background: linear-gradient(135deg,#ef4444,#8b5cf6); box-shadow:0 8px 30px rgba(0,0,0,0.5); }
 .input-base { background: rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.06); color: #fff; border-radius:8px; padding:.6rem .75rem }
+
+  /* --- MOBILE OPTIMIZATION --- */
+
+body, html {
+  width: 100%;
+  overflow-x: hidden; /* empêche les décalages horizontaux */
+}
+
+/* Empêche les cards de s’étirer trop */
+.card {
+  border-radius: 14px;
+}
+
+/* Spacing plus respirant sur mobile */
+@media (max-width: 480px) {
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  /* Container plus compact */
+  .container {
+    padding: 10px;
+  }
+
+  /* Header vertical sur petit écran */
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Navigation tab plus large */
+  .nav-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Cards collection plus compactes */
+  .item-card {
+    padding: 12px;
+  }
+
+  .item-card h3 {
+    font-size: 1rem;
+  }
+
+  /* Images mobiles */
+  .item-image {
+    max-height: 150px;
+  }
+
+  /* Galerie grille mobile */
+  .gallery-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* Final image section */
+  .final-image-container {
+    height: auto;
+    max-height: 260px;
+  }
+}
 
 /* responsive tweaks */
 @media (max-width:640px){
