@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Login</title>
+  <title>Connexion</title>
   <style>
     body{
       background:#0b0b0c; display:flex; align-items:center; justify-content:center;
@@ -11,7 +11,7 @@
     .box{
       background:#111; padding:30px; border-radius:10px;
       box-shadow:0 0 12px rgba(255,20,20,0.4);
-      width:260px; text-align:center;
+      width:280px; text-align:center;
     }
     input{
       width:100%; padding:10px; margin-top:10px; border-radius:6px;
@@ -27,19 +27,24 @@
 <body>
   <div class="box">
     <h2>Connexion</h2>
+    <input type="text" id="user" placeholder="Pseudo">
     <input type="password" id="pass" placeholder="Mot de passe">
     <button onclick="login()">Entrer</button>
-    <div class="error" id="err">Mot de passe incorrect</div>
+    <div class="error" id="err">Identifiants incorrects</div>
   </div>
 
   <script>
-    const CORRECT_PASSWORD_HASH = "REPLACE_WITH_HASH";
+    // 🔐 Identifiants attendus
+    const CORRECT_USER = "fcs_melvyn";
+    const CORRECT_PASSWORD_HASH = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
 
     async function login(){
-      const pwd = document.getElementById("pass").value;
+      const user = document.getElementById("user").value.trim();
+      const pwd  = document.getElementById("pass").value;
+
       const hash = await sha256(pwd);
 
-      if(hash === CORRECT_PASSWORD_HASH){
+      if(user === CORRECT_USER && hash === CORRECT_PASSWORD_HASH){
         sessionStorage.setItem("logged", "1");
         window.location.href = "index.html";
       } else {
@@ -51,7 +56,7 @@
       const buf = new TextEncoder().encode(str);
       const digest = await crypto.subtle.digest("SHA-256", buf);
       return [...new Uint8Array(digest)]
-          .map(x => x.toString(16).padStart(2, '0')).join('');
+        .map(x => x.toString(16).padStart(2, '0')).join('');
     }
   </script>
 </body>
